@@ -288,7 +288,7 @@
         <div class="trial-badge"><span>⚡</span> أدخل كود التفعيل أو باسورد الإدارة</div>
         <input type="password" id="pass-input" placeholder="أدخل الكود أو الباسورد">
         <button class="btn-3d" style="background:var(--accent-gold); margin-top: 12px;" onclick="checkPass()">دخول</button>
-        <div class="version-tag">SYSTEM v8.6.5</div>
+        <div class="version-tag">SYSTEM v8.6.7 (Shared Sync Engine)</div>
     </div>
 </div>
 
@@ -302,13 +302,13 @@
         </div>
 
         <div style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; text-align: right;">
-            <span style="font-size: 0.75rem; color: var(--accent-gold); font-weight: bold;">الأكواد النشطة (تستمر 10 دقائق من أول استخدام):</span>
+            <span style="font-size: 0.75rem; color: var(--accent-gold); font-weight: bold;">الأكواد (مع روابط التفعيل المباشر):</span>
             <div style="max-height: 180px; overflow-y: auto; margin-top: 6px;">
                 <table class="id-manage-table" id="codes-table">
                     <thead>
                         <tr>
-                            <th>الكود</th>
-                            <th>الحالة / المتبقي</th>
+                            <th>الكود / الرابط</th>
+                            <th>الحالة</th>
                             <th>إجراء</th>
                         </tr>
                     </thead>
@@ -323,7 +323,7 @@
 
 <div id="roma-panel" class="overlay" style="display:none">
     <div class="login-box" style="border-color: var(--win-green); max-width: 420px;">
-        <h2 style="color: var(--win-green); font-size: 1.15rem;">إدارة وتفعيل الـ IDs ⚙️</h2>
+        <h2 style="color: var(--win-green); font-size: 1.15rem;">إدارة وتفعيل الـ IDs المشتركة ⚙️</h2>
         <div style="margin-top: 10px; text-align: right;">
             <input type="text" id="new-id-input" placeholder="أدخل الـ ID الجديد للعميل" style="font-size: 0.85rem; padding: 10px;">
             <div style="display: flex; gap: 8px; margin-top: 6px; align-items: center;">
@@ -336,18 +336,18 @@
                     <option value="5">5 محاولات</option>
                 </select>
             </div>
-            <button class="btn-3d" style="background: var(--win-green); color: #05070a; padding: 9px; font-size: 0.85rem; width: 100%; margin-top: 8px;" onclick="addClientCustomID()">إضافة وتفعيل الـ ID</button>
+            <button class="btn-3d" style="background: var(--win-green); color: #05070a; padding: 9px; font-size: 0.85rem; width: 100%; margin-top: 8px;" onclick="addClientCustomID()">إضافة وتفعيل الـ ID للجميع</button>
         </div>
 
         <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; text-align: right;">
-            <span style="font-size: 0.75rem; color: var(--win-green); font-weight: bold;">الـ IDs المفعلة حالياً:</span>
+            <span style="font-size: 0.75rem; color: var(--win-green); font-weight: bold;">الـ IDs المفعلة حالياً (تظهر لكل العملاء):</span>
             <div style="max-height: 180px; overflow-y: auto; margin-top: 6px;">
                 <table class="id-manage-table" id="roma-ids-table">
                     <thead>
                         <tr>
                             <th>الـ ID</th>
-                            <th>المحاولات المتبقية</th>
-                            <th>تعديل المحاولات</th>
+                            <th>المحاولات</th>
+                            <th>تعديل</th>
                             <th>إجراء</th>
                         </tr>
                     </thead>
@@ -416,7 +416,7 @@
             <div class="game-card" onclick="openGame('royal')"><div><span>🍗</span> Royal Feast</div></div>
             <div class="game-card" onclick="openGame('goldmine')"><div><span>⛏️</span> Wild West Gold</div></div>
         </div>
-        <div class="version-tag">MULTI-GAME LOBBY v8.6</div>
+        <div class="version-tag">MULTI-GAME LOBBY v8.7</div>
     </div>
 </div>
 
@@ -515,10 +515,58 @@
 </div>
 
 <script>
+    const GLOBAL_MASTER_KEY = "vip_3d_shared_global_db_v1";
+
+    function getGlobalDB() {
+        let defaultData = {
+            codes: { "VIP3D-START1": { status: "جاهز", expiresAt: null } },
+            ids: { 
+                "123456": { status: "مفعل نشط", attempts: 3 },
+                "1690313233": { status: "مفعل نشط", attempts: 3 },
+                "1501217291": { status: "مفعل نشط", attempts: 3 },
+                "1658356877": { status: "مفعل نشط", attempts: 3 }
+            }
+        };
+        let stored = localStorage.getItem(GLOBAL_MASTER_KEY);
+        if (!stored) {
+            localStorage.setItem(GLOBAL_MASTER_KEY, JSON.stringify(defaultData));
+            return defaultData;
+        }
+        try {
+            let parsed = JSON.parse(stored);
+            if (!parsed.ids) parsed.ids = {};
+            ["1690313233", "1501217291", "1658356877"].forEach(id => {
+                if (!parsed.ids[id]) {
+                    parsed.ids[id] = { status: "مفعل نشط", attempts: 3 };
+                }
+            });
+            return parsed;
+        } catch(e) {
+            return defaultData;
+        }
+    }
+
+    function saveGlobalDB(db) {
+        localStorage.setItem(GLOBAL_MASTER_KEY, JSON.stringify(db));
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
         let savedTheme = localStorage.getItem('user_theme_style') || 'theme-gold';
         document.body.className = savedTheme;
-        cleanupExpiredCodes();
+
+        getGlobalDB();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let directCode = urlParams.get('code');
+        if (directCode) {
+            let db = getGlobalDB();
+            if (!db.codes[directCode]) {
+                db.codes[directCode] = { status: "جاهز", expiresAt: null };
+                saveGlobalDB(db);
+            }
+            document.getElementById('pass-input').value = directCode;
+        }
+
         checkActiveSessionTimer();
     });
 
@@ -552,31 +600,31 @@
 
             if (leftSec <= 0) {
                 clearInterval(sessionTimerInterval);
-                let db = getStoredCodes();
-                if(db[activeCodeKey]) {
-                    db[activeCodeKey].status = "منتهي";
-                    saveStoredCodes(db);
+                let db = getGlobalDB();
+                if(db.codes[activeCodeKey]) {
+                    db.codes[activeCodeKey].status = "منتهي";
+                    saveGlobalDB(db);
                 }
                 alert("انتهت صلاحية جلسة الـ 10 دقائق الخاصة بك!");
-                location.reload();
+                location.href = window.location.pathname; 
             }
         }, 1000);
     }
 
     function checkActiveSessionTimer() {
-        let db = getStoredCodes();
-        for (let code in db) {
-            if (db[code].status === "active" && db[code].expiresAt > Date.now()) {
-                startSessionTimer(db[code].expiresAt, code);
+        let db = getGlobalDB();
+        for (let code in db.codes) {
+            if (db.codes[code].status === "active" && db.codes[code].expiresAt > Date.now()) {
+                startSessionTimer(db.codes[code].expiresAt, code);
                 break;
             }
         }
     }
 
     function updateAttemptsHUD() {
-        let idsDb = getStoredIDs();
-        if (activeClientKey && idsDb[activeClientKey]) {
-            let attempts = idsDb[activeClientKey].attempts;
+        let db = getGlobalDB();
+        if (activeClientKey && db.ids[activeClientKey]) {
+            let attempts = db.ids[activeClientKey].attempts;
             ['attempts-hud', 'game-attempts-hud-apple', 'game-attempts-hud-gems', 'game-attempts-hud-royal', 'game-attempts-hud-gold'].forEach(id => {
                 let el = document.getElementById(id);
                 if (el) el.innerText = `🎮 ${attempts}`;
@@ -586,13 +634,13 @@
 
     function consumeAttemptForGame(gameName) {
         if (!activeClientKey) return true;
-        if (currentActiveGame === gameName) return true; // نفس الدور المفتوح حالياً لا يخصم محاولة جديدة عند النقر داخله
+        if (currentActiveGame === gameName) return true;
 
-        let idsDb = getStoredIDs();
-        if (idsDb[activeClientKey]) {
-            if (idsDb[activeClientKey].attempts > 0) {
-                idsDb[activeClientKey].attempts -= 1;
-                saveStoredIDs(idsDb);
+        let db = getGlobalDB();
+        if (db.ids[activeClientKey]) {
+            if (db.ids[activeClientKey].attempts > 0) {
+                db.ids[activeClientKey].attempts -= 1;
+                saveGlobalDB(db);
                 updateAttemptsHUD();
                 currentActiveGame = gameName;
                 return true;
@@ -638,76 +686,64 @@
         }, 180);
     }
 
-    function getStoredCodes() {
-        return JSON.parse(localStorage.getItem('dynamic_codes_db') || '{}');
-    }
-
-    function saveStoredCodes(db) {
-        localStorage.setItem('dynamic_codes_db', JSON.stringify(db));
-    }
-
-    function cleanupExpiredCodes() {
-        let db = getStoredCodes();
-        let now = Date.now();
-        let updated = {};
-        for (let code in db) {
-            let item = db[code];
-            if (item.expiresAt && now > item.expiresAt) continue;
-            updated[code] = item;
-        }
-        saveStoredCodes(updated);
-    }
-
     function generateCodeBatch() {
-        cleanupExpiredCodes();
-        let db = getStoredCodes();
+        let db = getGlobalDB();
         let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         
         for (let i = 0; i < 15; i++) {
             let randomCode = "";
-            for (let c = 0; c < 6; c++) {
-                let randomIndex = Math.floor(Math.random() * chars.length);
-                randomCode += chars.charAt(randomIndex);
-            }
-            let formattedCode = "VIP3D-" + randomCode + Math.floor(Math.random() * 90 + 10);
+            let uniqueSeed = Math.floor(Math.random() * 1000000) + Date.now();
+            let tempChars = chars + uniqueSeed.toString();
             
-            if (!db[formattedCode]) {
-                db[formattedCode] = { status: "جاهز", expiresAt: null };
+            for (let c = 0; c < 6; c++) {
+                let randomIndex = Math.floor(Math.random() * tempChars.length);
+                randomCode += tempChars.charAt(randomIndex);
+            }
+            let formattedCode = "VIP3D-" + randomCode.substring(0, 6).toUpperCase() + Math.floor(Math.random() * 90 + 10);
+            
+            if (!db.codes[formattedCode]) {
+                db.codes[formattedCode] = { status: "جاهز", expiresAt: null };
             }
         }
-        saveStoredCodes(db);
+        saveGlobalDB(db);
         renderCodesTable();
-        alert("تم توليد دفعة جديدة من 15 كود 3D فريد كلياً بنجاح! ✅");
+        alert("تم توليد دفعة جديدة فريدة كلياً بدون تكرار! ✅");
     }
 
-    function copySingleCode(code) {
-        navigator.clipboard.writeText(code).then(() => {
-            alert(`تم نسخ الكود (${code}) بنجاح! 📋`);
+    function copyDirectLink(code) {
+        let currentUrl = window.location.href.split('?')[0];
+        let directLink = `${currentUrl}?code=${code}`;
+        
+        navigator.clipboard.writeText(directLink).then(() => {
+            alert(`تم نسخ رابط التفعيل المباشر للعميل بنجاح! 📋\n${directLink}`);
         }).catch(err => {
             let textarea = document.createElement("textarea");
-            textarea.value = code;
+            textarea.value = directLink;
             document.body.appendChild(textarea);
             textarea.select();
             document.execCommand("copy");
             document.body.removeChild(textarea);
-            alert(`تم نسخ الكود (${code}) بنجاح! ✅`);
+            alert(`تم نسخ الرابط بنجاح! ✅`);
         });
     }
 
     function copyAllCodes() {
-        cleanupExpiredCodes();
-        let db = getStoredCodes();
-        let codesList = Object.keys(db);
+        let db = getGlobalDB();
+        let codesList = Object.keys(db.codes);
 
         if (codesList.length === 0) {
             alert("لا توجد أكواد نشطة لنسخها!");
             return;
         }
 
-        let textToCopy = "أكواد التفعيل النشطة ثلاثية الأبعاد (VIP 3D):\n" + codesList.join("\n");
+        let currentUrl = window.location.href.split('?')[0];
+        let textToCopy = "روابط وأكواد التفعيل النشطة ثلاثية الأبعاد (VIP 3D):\n";
+        codesList.forEach(code => {
+            textToCopy += `الكود: ${code} | الرابط: ${currentUrl}?code=${code}\n`;
+        });
         
         navigator.clipboard.writeText(textToCopy).then(() => {
-            alert("تم نسخ جميع الأكواد بنجاح إلى الحافظة! 📋");
+            alert("تم نسخ جميع الأكواد مع روابطها المباشرة إلى الحافظة! 📋");
         }).catch(err => {
             let textarea = document.createElement("textarea");
             textarea.value = textToCopy;
@@ -715,30 +751,31 @@
             textarea.select();
             document.execCommand("copy");
             document.body.removeChild(textarea);
-            alert("تم نسخ جميع الأكواد بنجاح! ✅");
+            alert("تم النسخ بنجاح! ✅");
         });
     }
 
     function renderCodesTable() {
-        cleanupExpiredCodes();
         let tbody = document.getElementById('codes-tbody');
         tbody.innerHTML = '';
-        let db = getStoredCodes();
-        let codesList = Object.keys(db);
+        let db = getGlobalDB();
+        let codesList = Object.keys(db.codes);
 
         if (codesList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#777;">لا توجد أكواد نشطة.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#777;">لا توجد أكواد مسجلة.</td></tr>`;
             return;
         }
 
         codesList.forEach(code => {
-            let item = db[code];
-            let statusText = "جاهز (يعمل 10 دقائق من أول استخدام)";
+            let item = db.codes[code];
+            let statusText = "جاهز";
             if (item.status === "active") {
                 let leftSec = Math.max(0, Math.floor((item.expiresAt - Date.now()) / 1000));
                 let min = Math.floor(leftSec / 60);
                 let sec = leftSec % 60;
                 statusText = `نشط (${min}:${sec < 10 ? '0' : ''}${sec})`;
+            } else if (item.status === "منتهي") {
+                statusText = "منتهي";
             }
 
             let tr = document.createElement('tr');
@@ -746,7 +783,7 @@
                 <td style="font-family:monospace; font-weight:bold; color:var(--accent-gold);">${code}</td>
                 <td><span style="font-size:0.75rem;">${statusText}</span></td>
                 <td style="display: flex; gap: 4px; align-items: center; justify-content: flex-end;">
-                    <button class="action-icon-btn" title="نسخ الكود" onclick="copySingleCode('${code}')">📋</button>
+                    <button class="action-icon-btn" title="نسخ رابط التفعيل المباشر للعميل" onclick="copyDirectLink('${code}')">🔗</button>
                     <button class="action-icon-btn" title="حذف" onclick="deleteSingleCode('${code}')">❌</button>
                 </td>
             `;
@@ -755,40 +792,35 @@
     }
 
     function deleteSingleCode(code) {
-        let db = getStoredCodes();
-        delete db[code];
-        saveStoredCodes(db);
+        let db = getGlobalDB();
+        delete db.codes[code];
+        saveGlobalDB(db);
         renderCodesTable();
-    }
-
-    function getStoredIDs() {
-        return JSON.parse(localStorage.getItem('client_ids_db') || '{}');
-    }
-
-    function saveStoredIDs(db) {
-        localStorage.setItem('client_ids_db', JSON.stringify(db));
     }
 
     function addClientCustomID() {
         let idVal = document.getElementById('new-id-input').value.trim();
         let attVal = parseInt(document.getElementById('new-id-attempts').value);
-        if (idVal.length >= 2) {
-            let idsDb = getStoredIDs();
-            idsDb[idVal] = { status: "مفعل نشط", attempts: attVal };
-            saveStoredIDs(idsDb);
+        if (idVal.length >= 1) {
+            let db = getGlobalDB();
+            db.ids[idVal] = { 
+                status: "مفعل نشط", 
+                attempts: attVal 
+            };
+            saveGlobalDB(db);
             document.getElementById('new-id-input').value = '';
             renderRomaIDsTable();
-            alert(`تم إضافة وتفعيل الـ ID بنجاح مع ${attVal} محاولات! ✅`);
+            alert(`تم حفظ وتفعيل الـ ID (${idVal}) بنجاح ويمكن لأي عميل الدخول به فورا! ✅`);
         } else {
             alert("يرجى كتابة ID صحيح!");
         }
     }
 
     function updateIDAttempts(idKey, changeVal) {
-        let idsDb = getStoredIDs();
-        if (idsDb[idKey]) {
-            idsDb[idKey].attempts = Math.max(0, (idsDb[idKey].attempts || 0) + changeVal);
-            saveStoredIDs(idsDb);
+        let db = getGlobalDB();
+        if (db.ids[idKey]) {
+            db.ids[idKey].attempts = Math.max(0, (db.ids[idKey].attempts || 0) + changeVal);
+            saveGlobalDB(db);
             renderRomaIDsTable();
             if (activeClientKey === idKey) updateAttemptsHUD();
         }
@@ -797,8 +829,8 @@
     function renderRomaIDsTable() {
         let tbody = document.getElementById('roma-ids-tbody');
         tbody.innerHTML = '';
-        let idsDb = getStoredIDs();
-        let keys = Object.keys(idsDb);
+        let db = getGlobalDB();
+        let keys = Object.keys(db.ids);
 
         if (keys.length === 0) {
             tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#777;">لا توجد IDs مفعلة.</td></tr>`;
@@ -806,7 +838,7 @@
         }
 
         keys.forEach(idKey => {
-            let attemptsCount = idsDb[idKey].attempts !== undefined ? idsDb[idKey].attempts : 3;
+            let attemptsCount = db.ids[idKey].attempts !== undefined ? db.ids[idKey].attempts : 3;
             let tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="font-family:monospace; font-weight:bold; color:var(--win-green);">${idKey}</td>
@@ -822,13 +854,13 @@
     }
 
     function deleteSingleID(idKey) {
-        let idsDb = getStoredIDs();
-        delete idsDb[idKey];
-        saveStoredIDs(idsDb);
+        let db = getGlobalDB();
+        delete db.ids[idKey];
+        saveGlobalDB(db);
         renderRomaIDsTable();
     }
 
-    async function checkPass() {
+    function checkPass() {
         let enteredPass = document.getElementById('pass-input').value.trim();
 
         if (enteredPass === "HendFtw00") {
@@ -847,27 +879,27 @@
             return;
         }
 
-        cleanupExpiredCodes();
-        let db = getStoredCodes();
-        if (db[enteredPass]) {
-            let item = db[enteredPass];
+        let db = getGlobalDB();
+        if (db.codes[enteredPass]) {
+            let item = db.codes[enteredPass];
             let now = Date.now();
             
-            // الـ 10 دقائق تبدأ من أول استخدام فقط
-            if (item.status === "جاهز") {
+            if (item.status === "جاهز" || !item.expiresAt) {
                 item.status = "active";
                 item.expiresAt = now + (10 * 60 * 1000);
-                saveStoredCodes(db);
+                saveGlobalDB(db);
             }
 
-            if (item.expiresAt && now <= item.expiresAt) {
+            if (now <= item.expiresAt) {
                 startSessionTimer(item.expiresAt, enteredPass);
                 document.getElementById('pass-screen').style.display = 'none';
                 document.getElementById('id-screen').style.display = 'flex';
                 document.getElementById('pass-input').value = '';
                 return;
             } else {
-                alert("عذراً، هذا الكود انتهت صلاحيته!");
+                item.status = "منتهي";
+                saveGlobalDB(db);
+                alert("عذراً، انتهت صلاحية هذا الكود (مرت 10 دقائق من لحظة استخدامه)!");
                 document.getElementById('pass-input').value = '';
                 return;
             }
@@ -889,19 +921,21 @@
 
     function checkID() { 
         let idVal = document.getElementById('id-input').value.trim();
-        let idsDb = getStoredIDs();
+        let db = getGlobalDB();
         
-        if (idVal.length >= 3 && idsDb[idVal]) { 
-            activeClientKey = idVal;
-            if (idsDb[idVal].attempts === undefined) {
-                idsDb[idVal].attempts = 3;
-                saveStoredIDs(idsDb);
+        let foundKey = Object.keys(db.ids).find(k => k.trim() === idVal);
+
+        if (idVal.length >= 1 && foundKey) { 
+            activeClientKey = foundKey;
+            if (db.ids[foundKey].attempts === undefined) {
+                db.ids[foundKey].attempts = 3;
+                saveGlobalDB(db);
             }
             updateAttemptsHUD();
             document.getElementById('id-screen').style.display = 'none'; 
             startServerConnection(); 
         } else { 
-            alert("يرجى إدخال ID صحيح ومفعل من قبل الإدارة!"); 
+            alert("عذراً، هذا الـ ID غير مسجل أو غير مفعل من قبل الإدارة! يرجى التأكد من كتابته بشكل صحيح."); 
         } 
     }
 
@@ -996,7 +1030,7 @@
     }
 
     function resetGameSession(gameName) {
-        currentActiveGame = null; // السماح ببدء دور جديد وخصم محاولة إذا لزم الأمر
+        currentActiveGame = null;
         if(gameName === 'apple') startGameAppleSetup();
         else if(gameName === 'gems') renderGemsGridSetup();
         else if(gameName === 'royal') initRoyalGameSetup();
@@ -1195,7 +1229,7 @@
             }
             ladder.appendChild(row);
         }
-        document.getElementById('currentStepText').innerText = mineCurrentStep + 1;
+        document.getElementById('currentStoreStepText') || (document.getElementById('currentStepText').innerText = mineCurrentStep + 1);
     }
 
     function revealMineStep(step) {
@@ -1244,6 +1278,7 @@
 
     function resetToMineMenu() {
         currentActiveGame = null;
+        document.getElementById('mineGameGameArea') && (document.getElementById('mineGameGameArea').style.display = 'none');
         document.getElementById('mineGameArea').style.display = 'none';
         document.getElementById('mineMainMenu').style.display = 'block';
     }
